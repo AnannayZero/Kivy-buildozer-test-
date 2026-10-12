@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zen Invoice</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{
+keepBg:'rgb(var(--b) / <alpha-value>)',keepSurface:'rgb(var(--s) / <alpha-value>)',keepSurfaceHover:'rgb(var(--sh) / <alpha-value>)',
+keepText:'rgb(var(--t) / <alpha-value>)',keepMuted:'rgb(var(--m) / <alpha-value>)',keepFab:'rgb(var(--a) / <alpha-value>)',
+keepOn:'rgb(var(--oa) / <alpha-value>)',keepBorder:'rgb(var(--t) / 0.12)'},
+fontFamily:{sans:['var(--font)'],mono:['var(--font)']}}}}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto:wght@300;400;500;700&family=Poppins:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Lora:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<style>
+:root{--b:23 20 21;--t:232 224 226;--a:243 176 195;--s:41 37 38;--sh:51 46 48;--m:160 148 152;--oa:23 20 21;--font:Helvetica,'Helvetica Neue','Inter',Arial,sans-serif}
+html{font-size:clamp(14px,.45vw + 12px,19px)}
+body{background:rgb(var(--b));color:rgb(var(--t));font-family:var(--font);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;display:inline-block;vertical-align:middle}
+.material-symbols-outlined.filled{font-variation-settings:'FILL' 1,'wght' 300,'GRAD' 0,'opsz' 24}
+input,textarea,select,button{font-family:inherit}
+input,textarea,select{color:inherit}
+input:focus,textarea:focus,select:focus{outline:none}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+input[type=color]{width:2.1rem;height:2.1rem;padding:0;border:1px solid rgb(var(--t)/.3);border-radius:.6rem;background:none;cursor:pointer}
+select,option{background:rgb(var(--s));color:rgb(var(--t))}
+select{border:1px solid rgb(var(--t)/.15);border-radius:.6rem;padding:.35rem .5rem;max-width:100%}
+.ed{width:100%;background:transparent;border-bottom:1px solid transparent;padding:.2rem 0;resize:none;overflow:hidden;transition:border-color .15s}
+.ed:hover{border-color:rgb(var(--t)/.2)}.ed:focus{border-color:rgb(var(--a))}
+.ed::placeholder,.fi::placeholder{color:rgb(var(--m)/.6)}
+.fi{width:100%;background:rgb(var(--b));border:1px solid rgb(var(--t)/.15);border-radius:.7rem;padding:.5rem .7rem;font-size:.85rem}
+.fi:focus{border-color:rgb(var(--a))}
+.lbl{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--m))}
+.row{display:grid;grid-template-columns:1.75rem minmax(0,1fr) minmax(3.5rem,.14fr) minmax(5rem,.24fr) minmax(5.5rem,.26fr) 1.75rem;gap:.5rem;align-items:start}
+.row .ed{font-size:.9rem}
+@media(max-width:540px){.row{grid-template-columns:1.5rem minmax(0,1fr) 3rem 4.5rem 1.5rem}.row .lt{display:none}}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,28rem);max-height:90vh;overflow-y:auto;z-index:60;transition:opacity .2s}
+.page{transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .25s}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:rgb(var(--t)/.2);border-radius:99px}
+@media print{
+.no-print{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#dashboardScreen{display:none!important}
+#editorScreen{position:static!important;overflow:visible!important;transform:none!important;opacity:1!important}
+.row{grid-template-columns:minmax(0,1fr) 4rem 6rem 6rem}}
+</style>
+</head>
+<body class="min-h-screen selection:bg-keepFab/30">
+
+<!-- DRAWER -->
+<div id="drawerBd" onclick="closeDrawer()" class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+<aside id="drawer" class="fixed top-0 left-0 bottom-0 w-[min(80vw,18rem)] bg-keepSurface border-r border-keepBorder z-40 -translate-x-full transition-transform duration-300 flex flex-col justify-between shadow-2xl">
+  <div>
+    <div class="p-5 flex items-center gap-3 border-b border-keepBorder">
+      <div class="w-9 h-9 rounded-xl bg-keepFab text-keepOn flex items-center justify-center"><span class="material-symbols-outlined">receipt_long</span></div>
+      <div><h2 class="text-base font-semibold">Zen Invoice</h2><p id="drawerAcct" class="text-[11px] text-keepMuted"></p></div>
+    </div>
+    <nav class="p-3 space-y-1 text-sm font-medium">
+      <button onclick="section('invoices')" id="d-invoices" class="w-full flex items-center justify-between px-4 py-3 rounded-r-full"><span class="flex items-center gap-3"><span class="material-symbols-outlined">description</span>Invoices</span><span id="b-invoices" class="text-xs px-2 py-0.5 rounded-full bg-keepFab/20">0</span></button>
+      <button onclick="section('archive')" id="d-archive" class="w-full flex items-center justify-between px-4 py-3 rounded-r-full"><span class="flex items-center gap-3"><span class="material-symbols-outlined">archive</span>Archive</span><span id="b-archive" class="text-xs px-2 py-0.5 rounded-full bg-keepText/10">0</span></button>
+      <button onclick="section('trash')" id="d-trash" class="w-full flex items-center justify-between px-4 py-3 rounded-r-full"><span class="flex items-center gap-3"><span class="material-symbols-outlined">delete</span>Trash</span><span id="b-trash" class="text-xs px-2 py-0.5 rounded-full bg-keepText/10">0</span></button>
+      <div class="my-3 border-t border-keepBorder"></div>
+      <button onclick="closeDrawer();openProfile()" class="w-full flex items-center gap-3 px-4 py-3 rounded-r-full text-keepMuted hover:bg-keepSurfaceHover hover:text-keepText"><span class="material-symbols-outlined">manage_accounts</span>Accounts</button>
+      <button onclick="closeDrawer();openSettings()" class="w-full flex items-center gap-3 px-4 py-3 rounded-r-full text-keepMuted hover:bg-keepSurfaceHover hover:text-keepText"><span class="material-symbols-outlined">settings</span>Settings</button>
+      <button onclick="closeDrawer();openProfile()" class="w-full flex items-center gap-3 px-4 py-3 rounded-r-full text-keepMuted hover:bg-keepSurfaceHover hover:text-keepText"><span class="material-symbols-outlined">cloud_upload</span>Backup &amp; Restore</button>
+    </nav>
+  </div>
+  <p class="p-4 border-t border-keepBorder text-center text-[11px] text-keepMuted">Zen Invoice • Works offline</p>
+</aside>
+
+<!-- DASHBOARD -->
+<div id="dashboardScreen" class="page w-full min-h-screen pb-28">
+  <header class="sticky top-0 z-30 bg-keepBg/90 backdrop-blur-md px-3 sm:px-5 pt-3 pb-2 mx-auto w-[min(100%,80rem)]">
+    <div class="bg-keepSurface h-12 rounded-full px-3 flex items-center justify-between shadow-md border border-keepBorder">
+      <button onclick="openDrawer()" class="p-2 rounded-full text-keepMuted hover:text-keepText"><span class="material-symbols-outlined text-xl">menu</span></button>
+      <div class="flex items-center flex-1 mx-2">
+        <input id="searchInput" oninput="renderDash()" placeholder="Search invoices, clients, items" class="bg-transparent text-sm w-full placeholder:text-keepMuted">
+        <button id="searchClr" onclick="$('searchInput').value='';renderDash()" class="hidden p-1 text-keepMuted"><span class="material-symbols-outlined text-lg">close</span></button>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleLayout()" id="layoutBtn" class="p-2 rounded-full text-keepMuted hover:text-keepText"><span class="material-symbols-outlined text-xl">grid_view</span></button>
+        <button onclick="openM('sortModal')" class="p-2 rounded-full text-keepMuted hover:text-keepText"><span class="material-symbols-outlined text-xl">swap_vert</span></button>
+        <button id="avatarBtn" onclick="openProfile()" class="w-8 h-8 rounded-full text-white flex items-center justify-center font-medium text-xs ml-1 hover:ring-2 hover:ring-keepFab" title="Accounts"></button>
+      </div>
+    </div>
+    <div class="flex items-center justify-between px-3 mt-3 text-keepMuted">
+      <span id="secTitle" class="uppercase tracking-widest text-[11px] text-keepFab font-medium">Invoices</span>
+      <span class="flex items-center gap-3 text-[11px]"><button id="emptyTrash" onclick="emptyTrash()" class="hidden text-red-400 hover:underline">Empty trash</button><span id="stats">0 items</span></span>
+    </div>
+  </header>
+  <main class="mx-auto w-[min(100%,80rem)] px-3 sm:px-5 mt-3">
+    <div id="pinnedSec" class="hidden mb-6"><div class="lbl mb-2 px-1">Pinned</div><div id="pinnedBox" class="grid gap-3"></div></div>
+    <div><div id="othersHdr" class="hidden lbl mb-2 px-1">Others</div><div id="listBox" class="grid gap-3"></div></div>
+    <div id="emptyState" class="hidden flex-col items-center py-20 text-center">
+      <div class="w-16 h-16 rounded-3xl bg-keepSurface flex items-center justify-center mb-3 text-keepMuted"><span class="material-symbols-outlined text-3xl">edit_note</span></div>
+      <p class="text-sm text-keepMuted">Nothing here yet</p>
+      <button onclick="newInvoice()" class="mt-3 text-xs text-keepFab hover:underline">+ Create new invoice</button>
+    </div>
+  </main>
+  <button onclick="newInvoice()" class="fixed bottom-6 right-6 w-14 h-14 rounded-2xl bg-keepFab text-keepOn shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition z-30" title="New invoice"><span class="material-symbols-outlined text-3xl">add</span></button>
+</div>
+
+<!-- EDITOR -->
+<div id="editorScreen" class="page fixed inset-0 bg-keepBg text-keepText z-50 overflow-y-auto opacity-0 pointer-events-none translate-x-full">
+  <header class="sticky top-0 z-30 bg-keepBg/90 backdrop-blur-md px-3 sm:px-5 py-3 border-b border-keepBorder no-print">
+    <div class="mx-auto w-[min(100%,64rem)] flex items-center justify-between text-keepMuted">
+      <button onclick="closeEditor()" class="p-2 rounded-full hover:text-keepText" title="Save &amp; close"><span class="material-symbols-outlined text-2xl">arrow_back</span></button>
+      <div class="flex items-center gap-1 sm:gap-2">
+        <button onclick="togglePin()" id="pinBtn" class="p-2 rounded-full hover:text-keepText" title="Pin"><span class="material-symbols-outlined text-xl">push_pin</span></button>
+        <div class="relative" id="colorWrap">
+          <button onclick="$('colorMenu').classList.toggle('hidden')" class="p-2 rounded-full hover:text-keepText" title="Colors"><span class="material-symbols-outlined text-xl">palette</span></button>
+          <div id="colorMenu" class="hidden absolute right-0 top-11 w-64 bg-keepSurface text-keepText border border-keepBorder rounded-2xl p-3 shadow-2xl z-50 space-y-3">
+            <div class="lbl">Presets</div><div id="presetRow" class="flex flex-wrap gap-2"></div>
+            <label class="flex items-center justify-between text-xs">Background <input type="color" id="cBg" oninput="setTheme()"></label>
+            <label class="flex items-center justify-between text-xs">Text <input type="color" id="cText" oninput="setTheme()"></label>
+            <label class="flex items-center justify-between text-xs">Accent <input type="color" id="cAcc" oninput="setTheme()"></label>
+            <button onclick="resetTheme()" class="w-full text-xs text-keepMuted hover:text-keepText pt-1 border-t border-keepBorder">Use app theme</button>
+          </div>
+        </div>
+        <button onclick="archiveCur()" class="p-2 rounded-full hover:text-keepText" title="Archive"><span class="material-symbols-outlined text-xl">archive</span></button>
+        <div class="relative" id="moreWrap">
+          <button onclick="$('moreMenu').classList.toggle('hidden')" class="p-2 rounded-full hover:text-keepText"><span class="material-symbols-outlined text-xl">more_vert</span></button>
+          <div id="moreMenu" class="hidden absolute right-0 top-11 w-52 bg-keepSurface text-keepText border border-keepBorder rounded-2xl py-2 shadow-2xl z-50 text-xs">
+            <button onclick="window.print()" class="w-full text-left px-4 py-2 hover:bg-keepSurfaceHover flex items-center gap-2"><span class="material-symbols-outlined text-base">print</span>Print / Export PDF</button>
+            <button onclick="copySnippet()" class="w-full text-left px-4 py-2 hover:bg-keepSurfaceHover flex items-center gap-2"><span class="material-symbols-outlined text-base">content_copy</span>Copy text</button>
+            <button onclick="duplicateCur()" class="w-full text-left px-4 py-2 hover:bg-keepSurfaceHover flex items-center gap-2"><span class="material-symbols-outlined text-base">file_copy</span>Make a copy</button>
+            <div class="my-1 border-t border-keepBorder"></div>
+            <button onclick="trashCur()" class="w-full text-left px-4 py-2 hover:bg-red-500/10 text-red-400 flex items-center gap-2"><span class="material-symbols-outlined text-base">delete</span>Move to trash</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto w-[min(100%,64rem)] px-[clamp(1rem,3vw,2.5rem)] py-6 pb-32">
+    <div class="space-y-[clamp(1.1rem,2.2vw,2rem)]">
+      <input id="eTitle" placeholder="Invoice title" oninput="saveInv()" class="ed text-[clamp(1.5rem,3.2vw,2.5rem)] tracking-wide">
+
+      <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))">
+        <div><div class="lbl">Invoice no.</div><input id="eNum" oninput="saveInv()" class="ed text-sm"></div>
+        <div><div class="lbl">Date</div><input id="eDate" type="date" oninput="saveInv()" class="ed text-sm"></div>
+        <div><div class="lbl">Currency</div><select id="eCur" onchange="saveInv()" class="text-sm w-full"></select></div>
+      </div>
+
+      <div class="grid gap-5" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))">
+        <div><div class="lbl mb-1 flex items-center gap-2">From <button onclick="openAcctForm(curInv().acc)" class="no-print normal-case tracking-normal text-keepFab hover:underline">edit</button></div><div id="eFrom" class="text-sm leading-relaxed"></div></div>
+        <div><div class="lbl mb-1">Bill to</div>
+          <input id="eClient" placeholder="Client name" oninput="saveInv()" class="ed text-sm font-semibold">
+          <textarea id="eClientInfo" rows="2" placeholder="Client ID, email, address…" oninput="saveInv()" class="ed text-sm text-keepMuted mt-1"></textarea></div>
+      </div>
+
+      <div class="w-full border-t border-keepBorder"></div>
+
+      <div class="no-print bg-keepSurface border border-keepBorder rounded-2xl p-3 flex items-center gap-2">
+        <span class="material-symbols-outlined text-keepFab text-lg">bolt</span>
+        <input id="quick" placeholder='Smart add: "250 logo design" or "120 for 3 hours consulting"' onkeydown="if(event.key==='Enter')quickAdd()" class="w-full bg-transparent text-xs placeholder:text-keepMuted">
+        <button onclick="quickAdd()" class="text-xs bg-keepFab/20 text-keepFab hover:bg-keepFab/30 px-3 py-1.5 rounded-xl font-medium">Add</button>
+      </div>
+
+      <div>
+        <div class="row lbl pb-1 border-b border-keepBorder">
+          <span class="no-print text-center">Done</span><span>Description</span><span class="text-center">Qty</span><span class="text-right">Price <span id="priceCur"></span></span><span class="lt text-right">Total</span><span class="no-print"></span>
+        </div>
+        <div id="items"></div>
+        <button onclick="addRow({desc:'',qty:1,price:0,done:false},true)" class="no-print flex items-center gap-2 text-xs text-keepMuted hover:text-keepFab py-3"><span class="material-symbols-outlined text-base">add</span>Add item line</button>
+      </div>
+
+      <div class="w-full border-t border-keepBorder"></div>
+
+      <div class="w-[min(100%,26rem)] ml-auto space-y-2 text-sm">
+        <div class="flex justify-between text-keepMuted"><span>Subtotal</span><span id="eSub"></span></div>
+        <div class="flex justify-between items-center gap-3 text-keepMuted">
+          <input id="eExtraLbl" placeholder="Fee label" oninput="saveInv()" class="ed !w-1/2">
+          <input id="eExtra" type="number" min="0" step="any" oninput="saveInv()" class="ed text-right !w-1/2">
+        </div>
+        <div class="border-t border-keepBorder"></div>
+        <div class="flex justify-between items-baseline gap-3 pt-1"><span class="lbl">Total</span><span id="eTotal" class="text-keepFab text-[clamp(1.5rem,3vw,2.5rem)] tracking-tight break-all text-right"></span></div>
+      </div>
+
+      <textarea id="eNotes" rows="2" placeholder="Notes / payment details…" oninput="saveInv()" class="ed text-sm text-keepMuted border-keepBorder !border-b"></textarea>
+    </div>
+  </main>
+
+  <footer class="fixed bottom-0 left-0 right-0 bg-keepBg/95 backdrop-blur-md border-t border-keepBorder py-2.5 px-4 z-30 no-print">
+    <div class="mx-auto w-[min(100%,64rem)] flex items-center justify-between text-xs text-keepMuted">
+      <button onclick="addRow({desc:'',qty:1,price:0,done:false},true)" class="p-1.5 rounded-lg hover:text-keepText"><span class="material-symbols-outlined text-lg">add_box</span></button>
+      <span id="eStatus"></span>
+    </div>
+  </footer>
+</div>
+
+<!-- MODALS -->
+<div id="mb" onclick="if(S.accounts.length)closeM()" class="fixed inset-0 bg-black/60 z-[55] opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+<div id="sortModal" class="modal bg-keepSurface border border-keepBorder rounded-3xl p-5 shadow-2xl opacity-0 pointer-events-none">
+  <h3 class="text-sm font-semibold mb-3">Sort by</h3><div id="sortList" class="space-y-1 text-sm"></div>
+</div>
+
+<div id="profileModal" class="modal bg-keepSurface border border-keepBorder rounded-3xl p-6 shadow-2xl opacity-0 pointer-events-none">
+  <div class="text-center mb-4">
+    <div id="pAvatar" class="w-14 h-14 rounded-full text-white mx-auto flex items-center justify-center font-semibold text-xl mb-2"></div>
+    <h3 id="pName" class="text-base font-semibold"></h3><p id="pMeta" class="text-xs text-keepMuted"></p>
+  </div>
+  <div class="bg-keepBg rounded-2xl p-4 my-4 grid grid-cols-3 gap-2 text-center border border-keepBorder">
+    <div><p id="stCount" class="text-base font-semibold text-keepFab">0</p><p class="lbl">Invoices</p></div>
+    <div><p id="stVal" class="text-xs font-semibold text-keepFab break-words">–</p><p class="lbl">Value</p></div>
+    <div><p id="stArch" class="text-base font-semibold text-keepMuted">0</p><p class="lbl">Archived</p></div>
+  </div>
+  <div class="lbl mb-2">Accounts</div>
+  <div id="acctList" class="space-y-1 mb-3"></div>
+  <div class="grid grid-cols-2 gap-2 text-xs mb-4">
+    <button onclick="openAcctForm(null)" class="py-2.5 rounded-xl bg-keepFab text-keepOn font-medium">+ New account</button>
+    <button onclick="openAcctForm(S.active)" class="py-2.5 rounded-xl bg-keepBg border border-keepBorder">Edit current</button>
+  </div>
+  <div class="grid grid-cols-2 gap-2 text-xs">
+    <button onclick="exportData()" class="py-2.5 rounded-xl bg-keepBg border border-keepBorder flex items-center justify-center gap-1"><span class="material-symbols-outlined text-base">download</span>Export</button>
+    <button onclick="$('fileIn').click()" class="py-2.5 rounded-xl bg-keepBg border border-keepBorder flex items-center justify-center gap-1"><span class="material-symbols-outlined text-base">upload</span>Import</button>
+  </div>
+  <input type="file" id="fileIn" accept=".json" onchange="importData(event)" class="hidden">
+</div>
+
+<div id="acctModal" class="modal bg-keepSurface border border-keepBorder rounded-3xl p-6 shadow-2xl opacity-0 pointer-events-none">
+  <h3 id="afTitle" class="text-base font-semibold mb-4"></h3>
+  <div class="space-y-3">
+    <div><div class="lbl mb-1">Name *</div><input id="afName" oninput="autoId()" class="fi" placeholder="Business or personal name"></div>
+    <div><div class="lbl mb-1">Account ID</div><input id="afId" oninput="this.dataset.t='1'" class="fi" placeholder="Auto-generated, editable"></div>
+    <div class="grid grid-cols-2 gap-3"><div><div class="lbl mb-1">Email</div><input id="afEmail" type="email" class="fi"></div><div><div class="lbl mb-1">Phone</div><input id="afPhone" class="fi"></div></div>
+    <div><div class="lbl mb-1">Address</div><textarea id="afAddr" rows="2" class="fi"></textarea></div>
+    <div class="grid grid-cols-2 gap-3"><div><div class="lbl mb-1">Tax / Reg. no.</div><input id="afTax" class="fi"></div><div><div class="lbl mb-1">Avatar color</div><input type="color" id="afColor"></div></div>
+    <div><div class="lbl mb-1">Default currency</div><select id="afCur" class="w-full text-sm"></select></div>
+  </div>
+  <div class="flex items-center justify-between mt-5 text-sm">
+    <button id="afDelete" onclick="delAcct()" class="text-red-400 hover:underline">Delete</button>
+    <div class="flex gap-2 ml-auto"><button id="afCancel" onclick="closeM()" class="px-4 py-2 rounded-xl text-keepMuted hover:text-keepText">Cancel</button><button onclick="saveAcct()" class="px-5 py-2 rounded-xl bg-keepFab text-keepOn font-medium">Save</button></div>
+  </div>
+</div>
+
+<div id="setModal" class="modal bg-keepSurface border border-keepBorder rounded-3xl p-6 shadow-2xl opacity-0 pointer-events-none">
+  <h3 class="text-base font-semibold mb-4">Settings</h3>
+  <div class="space-y-4 text-sm">
+    <div><div class="lbl mb-1">Default currency</div><select id="sCur" onchange="setCfg()" class="w-full"></select></div>
+    <div><div class="lbl mb-1">Font</div><select id="sFont" onchange="setCfg()" class="w-full"></select></div>
+    <div class="space-y-2"><div class="lbl">App colors</div>
+      <label class="flex items-center justify-between">Background <input type="color" id="sBg" oninput="setCfg()"></label>
+      <label class="flex items-center justify-between">Text <input type="color" id="sText" oninput="setCfg()"></label>
+      <label class="flex items-center justify-between">Accent <input type="color" id="sAcc" oninput="setCfg()"></label>
+      <button onclick="resetAppTheme()" class="text-xs text-keepMuted hover:text-keepText">Reset colors</button></div>
+    <label class="flex items-center justify-between">Compact cards <input type="checkbox" id="sCompact" onchange="setCfg()" class="accent-[rgb(var(--a))]"></label>
+    <div class="pt-3 border-t border-keepBorder"><button onclick="eraseAll()" class="w-full text-red-400 hover:underline py-1">Erase all data on this device</button></div>
+  </div>
+</div>
+
+<div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-keepSurface text-keepText border border-keepBorder text-xs px-4 py-2 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-[70]"></div>
+
+<script>
+const $=i=>document.getElementById(i);
+const esc=t=>String(t??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const num=v=>{const x=parseFloat(v);return isNaN(x)?0:x};
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+
+/* ---------- constants ---------- */
+const DEF={bg:'#171415',text:'#e8e0e2',accent:'#f3b0c3'};
+const FONTS={helvetica:['Helvetica',"Helvetica,'Helvetica Neue','Inter',Arial,sans-serif"],inter:['Inter',"'Inter',Helvetica,Arial,sans-serif"],roboto:['Roboto',"'Roboto',Helvetica,Arial,sans-serif"],poppins:['Poppins',"'Poppins',Helvetica,Arial,sans-serif"],dmsans:['DM Sans',"'DM Sans',Helvetica,Arial,sans-serif"],grotesk:['Space Grotesk',"'Space Grotesk',Helvetica,Arial,sans-serif"],lora:['Lora (serif)',"'Lora',Georgia,serif"]};
+const PRESETS=[{n:'Midnight',bg:'#0f172a',text:'#e2e8f0',accent:'#38bdf8'},{n:'Rose',bg:'#2b1620',text:'#f6e7ec',accent:'#f472b6'},{n:'Forest',bg:'#10261b',text:'#e4f2e8',accent:'#4ade80'},{n:'Violet',bg:'#241636',text:'#efe6f8',accent:'#a78bfa'},{n:'Ember',bg:'#2b1a14',text:'#f7ebe4',accent:'#fb923c'},{n:'Paper',bg:'#ffffff',text:'#1f2328',accent:'#2563eb'},{n:'Sand',bg:'#f5efe3',text:'#3a3226',accent:'#b45309'},{n:'Mint',bg:'#e8f5ef',text:'#12372a',accent:'#059669'}];
+const SORTS={date_desc:['Last edited (newest)',(x,y)=>y.updatedAt-x.updatedAt],date_asc:['Last edited (oldest)',(x,y)=>x.updatedAt-y.updatedAt],amount_desc:['Highest amount',(x,y)=>total(y)-total(x)],title_asc:['Title (A–Z)',(x,y)=>(x.title||'').localeCompare(y.title||'')]};
+
+/* ---------- currencies (every ISO code the browser knows) ---------- */
+const CODES=(Intl.supportedValuesOf?Intl.supportedValuesOf('currency'):['USD','EUR','GBP','BDT','INR','JPY','CNY','CAD','AUD','CHF','AED','SAR','SGD','MYR','PKR','LKR','NPR','KRW','BRL','MXN','ZAR','TRY','RUB','SEK','NOK','DKK','NZD','HKD','THB','IDR','PHP','VND','EGP','NGN','KES']);
+let DN;try{DN=new Intl.DisplayNames(['en'],{type:'currency'})}catch{DN={of:c=>c}}
+const NFS={};
+const NF=c=>NFS[c]??=new Intl.NumberFormat('en',{style:'currency',currency:c,currencyDisplay:'narrowSymbol'});
+const fmt=(n,c)=>{c=c||CFG.currency;try{return NF(c).format(n)}catch{return c+' '+n.toFixed(2)}};
+const sym=c=>{try{return NF(c).formatToParts(0).find(p=>p.type==='currency').value}catch{return c}};
+const curOpts=sel=>CODES.map(c=>`<option value="${c}"${c===sel?' selected':''}>${c} (${esc(sym(c))}) — ${esc(DN.of(c)||c)}</option>`).join('');
+
+/* ---------- theme engine ---------- */
+const hex2rgb=h=>{h=h.replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');const n=parseInt(h,16);return[n>>16&255,n>>8&255,n&255]};
+const mix=(a,b,p)=>a.map((v,i)=>Math.round(v+(b[i]-v)*p));
+function applyTheme(el,th){
+  const B=hex2rgb(th.bg),T=hex2rgb(th.text),A=hex2rgb(th.accent);
+  const v={'--b':B,'--t':T,'--a':A,'--s':mix(B,T,.07),'--sh':mix(B,T,.13),'--m':mix(T,B,.38),'--oa':(.299*A[0]+.587*A[1]+.114*A[2])>150?[20,20,20]:[255,255,255]};
+  for(const k in v)el.style.setProperty(k,v[k].join(' '));
+}
+
+/* ---------- state ---------- */
+const S={accounts:[],invoices:[],active:null,section:'invoices',cur:null};
+const CFG={currency:'USD',font:'helvetica',theme:{...DEF},compact:false,layout:'grid',sort:'date_desc'};
+const acct=k=>S.accounts.find(a=>a.key===(k||S.active));
+const mine=()=>S.invoices.filter(i=>i.acc===S.active);
+const curInv=()=>S.invoices.find(i=>i.id===S.cur);
+const total=i=>i.items.reduce((s,x)=>s+x.qty*x.price,0)+(+i.extra||0);
+function persist(){LS.set('zen_data_v3',{accounts:S.accounts,invoices:S.invoices,active:S.active});LS.set('zen_cfg_v3',CFG)}
+
+window.onload=()=>{
+  const d=LS.get('zen_data_v3');if(d){S.accounts=d.accounts||[];S.invoices=d.invoices||[];S.active=d.active}
+  Object.assign(CFG,LS.get('zen_cfg_v3')||{});
+  if(!acct())S.active=S.accounts[0]?.key||null;
+  $('presetRow').innerHTML=PRESETS.map((p,i)=>`<button onclick="presetTheme(${i})" title="${p.n}" class="w-7 h-7 rounded-full" style="background:${p.bg};border:3px solid ${p.accent}"></button>`).join('');
+  $('sortList').innerHTML=Object.entries(SORTS).map(([k,v])=>`<button onclick="CFG.sort='${k}';persist();closeM();renderDash()" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-keepSurfaceHover">${v[0]}</button>`).join('');
+  applyCfg();section('invoices');renderAll();
+  if(!S.accounts.length)openAcctForm(null,true);
+  document.addEventListener('click',e=>{if(!e.target.closest('#colorWrap'))$('colorMenu').classList.add('hidden');if(!e.target.closest('#moreWrap'))$('moreMenu').classList.add('hidden')});
+  const it=$('items');
+  it.addEventListener('input',e=>{if(e.target.tagName==='TEXTAREA')grow(e.target);saveInv()});
+  it.addEventListener('change',e=>{if(e.target.dataset.f==='done'){e.target.closest('.row').querySelector('[data-f=desc]').classList.toggle('line-through',e.target.checked);saveInv()}});
+  it.addEventListener('click',e=>{const b=e.target.closest('.del');if(b){b.closest('.row').remove();saveInv()}});
+  $('editorScreen').addEventListener('input',e=>{if(e.target.tagName==='TEXTAREA')grow(e.target)});
+  addEventListener('resize',growAll);
+};
+function applyCfg(){
+  applyTheme(document.documentElement,CFG.theme);
+  document.documentElement.style.setProperty('--font',(FONTS[CFG.font]||FONTS.helvetica)[1]);
+  $('layoutBtn').innerHTML=`<span class="material-symbols-outlined text-xl">${CFG.layout==='grid'?'grid_view':'view_agenda'}</span>`;
+}
+function renderAll(){
+  const a=acct();
+  $('avatarBtn').textContent=a?a.name[0].toUpperCase():'+';$('avatarBtn').style.background=a?a.color:'#666';
+  $('drawerAcct').textContent=a?`${a.name} • ${a.id}`:'No account';
+  renderDash();
+}
+const grow=t=>{t.style.height='auto';t.style.height=t.scrollHeight+'px'};
+const growAll=()=>document.querySelectorAll('#editorScreen textarea.ed').forEach(grow);
+
+/* ---------- toast & modals ---------- */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('opacity-0');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.add('opacity-0'),2200)}
+function openM(id){closeM();$(id).classList.remove('opacity-0','pointer-events-none');$('mb').classList.remove('opacity-0','pointer-events-none')}
+function closeM(){document.querySelectorAll('.modal').forEach(m=>m.classList.add('opacity-0','pointer-events-none'));$('mb').classList.add('opacity-0','pointer-events-none')}
+function openDrawer(){$('drawer').classList.remove('-translate-x-full');$('drawerBd').classList.remove('opacity-0','pointer-events-none')}
+function closeDrawer(){$('drawer').classList.add('-translate-x-full');$('drawerBd').classList.add('opacity-0','pointer-events-none')}
+
+/* ---------- dashboard ---------- */
+function section(s){
+  S.section=s;closeDrawer();
+  ['invoices','archive','trash'].forEach(k=>$('d-'+k).className='w-full flex items-center justify-between px-4 py-3 rounded-r-full '+(k===s?'bg-keepFab/15 text-keepFab':'text-keepMuted hover:bg-keepSurfaceHover hover:text-keepText'));
+  $('secTitle').textContent={invoices:'Invoices',archive:'Archived',trash:'Trash'}[s];
+  renderDash();
+}
+function toggleLayout(){CFG.layout=CFG.layout==='grid'?'list':'grid';persist();applyCfg();renderDash()}
+function renderDash(){
+  const q=$('searchInput').value.toLowerCase().trim();$('searchClr').classList.toggle('hidden',!q);
+  const a=mine(),cnt={invoices:0,archive:0,trash:0};
+  a.forEach(i=>cnt[i.trashed?'trash':i.archived?'archive':'invoices']++);
+  for(const k in cnt)$('b-'+k).textContent=cnt[k];
+  let l=a.filter(i=>S.section==='trash'?i.trashed:!i.trashed&&(S.section==='archive')===!!i.archived);
+  if(q)l=l.filter(i=>([i.title,i.client,i.clientInfo,i.number,...i.items.map(x=>x.desc)].join(' ').toLowerCase().includes(q))||String(total(i)).includes(q));
+  l.sort((SORTS[CFG.sort]||SORTS.date_desc)[1]);
+  $('stats').textContent=`${l.length} item${l.length===1?'':'s'}`;
+  $('emptyTrash').classList.toggle('hidden',S.section!=='trash'||!l.length);
+  const inv=S.section==='invoices',pin=inv?l.filter(i=>i.pinned):[],rest=inv?l.filter(i=>!i.pinned):l;
+  const cols=CFG.layout==='list'?'1fr':'repeat(auto-fill,minmax(min(100%,15rem),1fr))';
+  [$('pinnedBox'),$('listBox')].forEach(b=>{b.innerHTML='';b.style.gridTemplateColumns=cols});
+  pin.forEach(i=>$('pinnedBox').appendChild(card(i)));rest.forEach(i=>$('listBox').appendChild(card(i)));
+  $('pinnedSec').classList.toggle('hidden',!pin.length);$('othersHdr').classList.toggle('hidden',!pin.length);
+  $('emptyState').classList.toggle('hidden',!!l.length);$('emptyState').classList.toggle('flex',!l.length);
+}
+function card(inv){
+  const el=document.createElement('div'),th=inv.theme;
+  if(th)applyTheme(el,th);
+  el.className=`${th?'bg-keepBg':'bg-keepSurface hover:bg-keepSurfaceHover'} text-keepText border border-keepBorder rounded-2xl p-[clamp(.8rem,1.3vw,1.2rem)] cursor-pointer flex flex-col justify-between gap-3 group relative shadow-md transition`;
+  el.onclick=()=>openEditor(inv.id);
+  const n=CFG.compact?2:4,c=inv.currency;
+  const rows=inv.items.slice(0,n).map(x=>`<div class="flex justify-between gap-2 text-xs py-0.5 ${x.done?'line-through opacity-50':''}"><span class="min-w-0 break-words">${esc(x.desc)||'<i class="text-keepMuted">…</i>'}</span><span class="text-keepMuted shrink-0">${fmt(x.qty*x.price,c)}</span></div>`).join('');
+  el.innerHTML=`<div>
+    <div class="flex items-start justify-between gap-2 mb-1"><h3 class="text-sm font-semibold break-words">${esc(inv.title)||'Untitled'}</h3>${inv.pinned?'<span class="material-symbols-outlined text-keepFab text-base filled">push_pin</span>':''}</div>
+    <div class="text-[11px] text-keepMuted mb-2">${esc(inv.number||'')}</div>${rows}
+    ${inv.items.length>n?`<div class="text-[10px] text-keepMuted pt-0.5">+${inv.items.length-n} more</div>`:''}</div>
+    <div class="pt-2 border-t border-keepBorder flex items-center justify-between flex-wrap gap-2 text-[11px] text-keepMuted">
+      <span class="break-words min-w-0">${esc(inv.client)||'No client'}</span>
+      <span class="font-medium text-keepFab text-xs bg-keepFab/15 px-2 py-0.5 rounded-full">${fmt(total(inv),c)}</span></div>
+    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 flex items-center gap-1 bg-keepBg/90 px-1.5 py-0.5 rounded-full border border-keepBorder">
+      <button onclick="event.stopPropagation();flag('${inv.id}','pinned')" class="text-keepMuted hover:text-keepFab"><span class="material-symbols-outlined text-sm">push_pin</span></button>
+      <button onclick="event.stopPropagation();flag('${inv.id}','archived')" class="text-keepMuted hover:text-keepFab"><span class="material-symbols-outlined text-sm">archive</span></button>
+      <button onclick="event.stopPropagation();flag('${inv.id}','trashed')" class="text-keepMuted hover:text-red-400"><span class="material-symbols-outlined text-sm">delete</span></button></div>`;
+  return el;
+}
+function flag(id,k){const i=S.invoices.find(x=>x.id===id);if(!i)return;i[k]=!i[k];persist();renderAll();toast(i[k]?{pinned:'Pinned',archived:'Archived',trashed:'Moved to trash'}[k]:'Restored')}
+function emptyTrash(){if(!confirm('Permanently delete everything in the trash?'))return;S.invoices=S.invoices.filter(i=>!(i.acc===S.active&&i.trashed));persist();renderAll()}
+
+/* ---------- accounts ---------- */
+let editKey=null;
+const slug=s=>s.trim().toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,12);
+function autoId(){const f=$('afId');if(f.dataset.t)return;let b=slug($('afName').value)||'',id=b,n=1;while(id&&S.accounts.some(a=>a.id===id&&a.key!==editKey))id=b+'-'+(++n);f.value=id}
+function openAcctForm(key,force){
+  const a=key?acct(key):null;editKey=a?.key||null;
+  $('afTitle').textContent=a?'Edit account':'New account';
+  $('afName').value=a?.name||'';$('afId').value=a?.id||'';$('afId').dataset.t=a?'1':'';
+  $('afEmail').value=a?.email||'';$('afPhone').value=a?.phone||'';$('afAddr').value=a?.address||'';$('afTax').value=a?.taxId||'';
+  $('afColor').value=a?.color||'#7a4855';$('afCur').innerHTML=curOpts(a?.currency||CFG.currency);
+  $('afCancel').classList.toggle('hidden',!!force);$('afDelete').classList.toggle('hidden',!a);
+  openM('acctModal');
+}
+function saveAcct(){
+  const name=$('afName').value.trim();if(!name)return toast('Name is required');
+  const id=$('afId').value.trim()||slug(name)||'ACCT';
+  if(S.accounts.some(a=>a.id.toLowerCase()===id.toLowerCase()&&a.key!==editKey))return toast('That account ID is already in use');
+  const d={name,id,email:$('afEmail').value.trim(),phone:$('afPhone').value.trim(),address:$('afAddr').value.trim(),taxId:$('afTax').value.trim(),color:$('afColor').value,currency:$('afCur').value};
+  if(editKey)Object.assign(acct(editKey),d);else{const a={key:uid('a_'),...d};S.accounts.push(a);S.active=a.key}
+  persist();closeM();renderAll();if(S.cur)openEditor(S.cur);toast('Account saved');
+}
+function delAcct(){
+  const a=acct(editKey);if(!a||!confirm(`Delete "${a.name}" and all of its invoices?`))return;
+  S.invoices=S.invoices.filter(i=>i.acc!==a.key);S.accounts=S.accounts.filter(x=>x.key!==a.key);
+  S.active=S.accounts[0]?.key||null;persist();closeM();renderAll();if(!S.accounts.length)openAcctForm(null,true);
+}
+function openProfile(){
+  const a=acct();if(!a)return openAcctForm(null,true);
+  $('pAvatar').textContent=a.name[0].toUpperCase();$('pAvatar').style.background=a.color;
+  $('pName').textContent=a.name;$('pMeta').textContent=[a.id,a.email].filter(Boolean).join(' • ');
+  const live=mine().filter(i=>!i.trashed),by={};live.forEach(i=>by[i.currency]=(by[i.currency]||0)+total(i));
+  $('stCount').textContent=live.length;$('stArch').textContent=live.filter(i=>i.archived).length;
+  $('stVal').textContent=Object.entries(by).map(([c,v])=>fmt(v,c)).join(' · ')||'–';
+  $('acctList').innerHTML=S.accounts.map(x=>`<button onclick="S.active='${x.key}';persist();renderAll();openProfile()" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl ${x.key===S.active?'bg-keepFab/15':'hover:bg-keepSurfaceHover'}"><span class="w-8 h-8 rounded-full text-white text-xs flex items-center justify-center shrink-0" style="background:${x.color}">${esc(x.name[0].toUpperCase())}</span><span class="text-left text-sm min-w-0"><span class="block font-medium break-words">${esc(x.name)}</span><span class="block text-[11px] text-keepMuted">${esc(x.id)}</span></span>${x.key===S.active?'<span class="material-symbols-outlined text-keepFab ml-auto">check</span>':''}</button>`).join('');
+  openM('profileModal');
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  $('sCur').innerHTML=curOpts(CFG.currency);
+  $('sFont').innerHTML=Object.entries(FONTS).map(([k,v])=>`<option value="${k}"${k===CFG.font?' selected':''}>${v[0]}</option>`).join('');
+  $('sBg').value=CFG.theme.bg;$('sText').value=CFG.theme.text;$('sAcc').value=CFG.theme.accent;$('sCompact').checked=CFG.compact;
+  openM('setModal');
+}
+function setCfg(){
+  CFG.currency=$('sCur').value;CFG.font=$('sFont').value;CFG.compact=$('sCompact').checked;
+  CFG.theme={bg:$('sBg').value,text:$('sText').value,accent:$('sAcc').value};
+  persist();applyCfg();renderDash();
+}
+function resetAppTheme(){CFG.theme={...DEF};$('sBg').value=DEF.bg;$('sText').value=DEF.text;$('sAcc').value=DEF.accent;persist();applyCfg();renderDash()}
+function eraseAll(){
+  if(!confirm('Erase all accounts and invoices on this device? This cannot be undone.'))return;
+  S.accounts=[];S.invoices=[];S.active=null;S.cur=null;persist();closeM();renderAll();openAcctForm(null,true);
+}
+
+/* ---------- editor ---------- */
+function newInvoice(){
+  const a=acct();if(!a)return openAcctForm(null,true);
+  const inv={id:uid('inv_'),acc:a.key,title:'',number:'INV-'+String(mine().length+1).padStart(4,'0'),client:'',clientInfo:'',
+    date:new Date().toISOString().slice(0,10),currency:a.currency||CFG.currency,pinned:false,archived:false,trashed:false,theme:null,
+    extra:0,extraLabel:'Extra charge',notes:'',updatedAt:Date.now(),items:[{desc:'',qty:1,price:0,done:false}]};
+  S.invoices.unshift(inv);persist();openEditor(inv.id);
+}
+function rowHtml(it){return `<div class="row group py-1 border-b border-keepBorder">
+  <div class="no-print pt-1 text-center"><input type="checkbox" data-f="done" ${it.done?'checked':''} class="accent-[rgb(var(--a))] cursor-pointer"></div>
+  <textarea rows="1" data-f="desc" placeholder="Description" class="ed ${it.done?'line-through':''}">${esc(it.desc)}</textarea>
+  <input type="number" data-f="qty" min="0" step="any" value="${it.qty}" class="ed text-center">
+  <input type="number" data-f="price" min="0" step="any" value="${it.price}" class="ed text-right">
+  <div class="lt text-right text-sm pt-1 font-medium" data-lt></div>
+  <button class="no-print del opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 text-keepMuted hover:text-red-400 pt-0.5"><span class="material-symbols-outlined text-base">close</span></button></div>`}
+function addRow(it,focus){
+  $('items').insertAdjacentHTML('beforeend',rowHtml(it));
+  const r=$('items').lastElementChild;grow(r.querySelector('textarea'));
+  if(focus){r.querySelector('textarea').focus();saveInv()}
+}
+function openEditor(id){
+  S.cur=id;const inv=curInv();if(!inv)return;
+  $('eTitle').value=inv.title;$('eNum').value=inv.number||'';$('eDate').value=inv.date||'';
+  $('eCur').innerHTML=curOpts(inv.currency);$('eClient').value=inv.client;$('eClientInfo').value=inv.clientInfo||'';
+  $('eExtraLbl').value=inv.extraLabel||'';$('eExtra').value=inv.extra||0;$('eNotes').value=inv.notes||'';
+  const a=acct(inv.acc);
+  $('eFrom').innerHTML=a?`<div class="font-semibold">${esc(a.name)}</div>`+[a.id&&'ID: '+a.id,a.taxId&&'Tax/Reg: '+a.taxId,a.email,a.phone].filter(Boolean).map(x=>`<div class="text-keepMuted">${esc(x)}</div>`).join('')+(a.address?`<div class="text-keepMuted whitespace-pre-line">${esc(a.address)}</div>`:''):'';
+  const th=inv.theme||CFG.theme;applyTheme($('editorScreen'),th);syncTheme(th);updPin(inv.pinned);
+  $('items').innerHTML='';inv.items.forEach(i=>addRow(i));calc(inv);
+  $('editorScreen').classList.remove('opacity-0','pointer-events-none','translate-x-full');
+  $('dashboardScreen').classList.add('opacity-0');
+  requestAnimationFrame(growAll);
+}
+function closeEditor(){
+  saveInv();S.cur=null;
+  $('editorScreen').classList.add('opacity-0','pointer-events-none','translate-x-full');
+  $('dashboardScreen').classList.remove('opacity-0');renderAll();
+}
+function saveInv(){
+  const inv=curInv();if(!inv)return;
+  Object.assign(inv,{title:$('eTitle').value,number:$('eNum').value,date:$('eDate').value,currency:$('eCur').value,client:$('eClient').value,clientInfo:$('eClientInfo').value,
+    extraLabel:$('eExtraLbl').value,extra:num($('eExtra').value),notes:$('eNotes').value,updatedAt:Date.now()});
+  inv.items=[...$('items').children].map(r=>{const q=f=>r.querySelector(`[data-f=${f}]`);return{desc:q('desc').value,qty:num(q('qty').value),price:num(q('price').value),done:q('done').checked}});
+  persist();calc(inv);
+}
+function calc(inv){
+  const c=inv.currency;let sub=0;
+  [...$('items').children].forEach((r,i)=>{const it=inv.items[i];if(!it)return;sub+=it.qty*it.price;r.querySelector('[data-lt]').textContent=fmt(it.qty*it.price,c)});
+  $('eSub').textContent=fmt(sub,c);$('eTotal').textContent=fmt(sub+(+inv.extra||0),c);
+  $('priceCur').textContent='('+c+')';$('eStatus').textContent=`${inv.items.length} item${inv.items.length===1?'':'s'} • ${c} • saved`;
+}
+function quickAdd(){
+  const v=$('quick').value.trim();if(!v)return;
+  let price=0,qty=1,desc=v,m=v.match(/^(\d+(?:\.\d+)?)\s+(?:for\s+)?(.+)$/i)||null,m2=v.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/);
+  if(m){price=parseFloat(m[1]);desc=m[2];const q=desc.match(/^(\d+)\s+(.+)$/);if(q){qty=parseInt(q[1]);price=price/qty}}
+  else if(m2){desc=m2[1];price=parseFloat(m2[2])}
+  const rows=$('items').children;
+  if(rows.length===1&&!rows[0].querySelector('[data-f=desc]').value&&!num(rows[0].querySelector('[data-f=price]').value))rows[0].remove();
+  addRow({desc,qty,price:+price.toFixed(4),done:false});$('quick').value='';saveInv();toast('Line added');
+}
+function togglePin(){const i=curInv();i.pinned=!i.pinned;updPin(i.pinned);persist();toast(i.pinned?'Pinned':'Unpinned')}
+const updPin=p=>$('pinBtn').innerHTML=`<span class="material-symbols-outlined text-xl ${p?'text-keepFab filled':''}">push_pin</span>`;
+function archiveCur(){const i=curInv();i.archived=!i.archived;closeEditor();toast(i.archived?'Archived':'Restored')}
+function trashCur(){const i=curInv();i.trashed=true;closeEditor();toast('Moved to trash')}
+function duplicateCur(){
+  saveInv();const c=JSON.parse(JSON.stringify(curInv()));c.id=uid('inv_');c.title=(c.title||'Untitled')+' (copy)';
+  c.number='INV-'+String(mine().length+1).padStart(4,'0');c.pinned=false;c.updatedAt=Date.now();
+  S.invoices.unshift(c);closeEditor();toast('Duplicated');
+}
+function copySnippet(){
+  saveInv();const i=curInv(),c=i.currency;
+  const t=[`${i.title||'Untitled'} ${i.number?'('+i.number+')':''}`.trim(),i.client&&'Client: '+i.client,'--------------------',
+    ...i.items.filter(x=>x.desc).map(x=>`${x.desc}${x.qty!==1?' ×'+x.qty:''}  ${fmt(x.qty*x.price,c)}`),'--------------------',
+    i.extra?`${i.extraLabel||'Extra'}: ${fmt(i.extra,c)}`:'',`Total: ${fmt(total(i),c)}`].filter(Boolean).join('\n');
+  (navigator.clipboard?.writeText(t)||Promise.reject()).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()});
+  $('moreMenu').classList.add('hidden');toast('Copied to clipboard');
+}
+
+/* ---------- per-invoice colors ---------- */
+function syncTheme(t){$('cBg').value=t.bg;$('cText').value=t.text;$('cAcc').value=t.accent}
+function setTheme(){const i=curInv();i.theme={bg:$('cBg').value,text:$('cText').value,accent:$('cAcc').value};applyTheme($('editorScreen'),i.theme);persist()}
+function presetTheme(n){syncTheme(PRESETS[n]);setTheme()}
+function resetTheme(){const i=curInv();i.theme=null;applyTheme($('editorScreen'),CFG.theme);syncTheme(CFG.theme);persist()}
+
+/* ---------- backup ---------- */
+function exportData(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({v:3,accounts:S.accounts,invoices:S.invoices,cfg:CFG},null,2)],{type:'application/json'}));
+  a.download=`zen_invoice_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();toast('Backup downloaded');
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=ev=>{try{
+    const d=JSON.parse(ev.target.result);
+    const norm=(i,acc)=>({id:i.id||uid('inv_'),acc:i.acc||acc,title:i.title||'',number:i.number||'',client:i.client||'',clientInfo:i.clientInfo||'',date:/^\d{4}-\d\d-\d\d$/.test(i.date)?i.date:new Date().toISOString().slice(0,10),
+      currency:i.currency||CFG.currency,pinned:!!i.pinned,archived:!!i.archived,trashed:!!i.trashed,theme:i.theme||null,extra:+(i.extra??i.extraCharge)||0,extraLabel:i.extraLabel||'',notes:i.notes||'',
+      updatedAt:i.updatedAt||Date.now(),items:(i.items||[]).map(x=>({desc:x.desc||'',qty:+x.qty||0,price:+x.price||0,done:!!x.done}))});
+    if(Array.isArray(d)){if(!S.active)return toast('Create an account first');S.invoices.push(...d.map(i=>norm(i,S.active)))}
+    else if(d.accounts&&d.invoices){if(!confirm('Replace all current data with this backup?'))return;S.accounts=d.accounts;S.invoices=d.invoices.map(i=>norm(i,i.acc));Object.assign(CFG,d.cfg||{});S.active=S.accounts[0]?.key||null}
+    else throw 0;
+    persist();applyCfg();closeM();renderAll();toast('Backup restored');
+  }catch{toast('Invalid backup file')}};
+  r.readAsText(f);e.target.value='';
+}
+</script>
+</body>
+</html>
