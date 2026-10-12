@@ -15,7 +15,7 @@ source.dir = .
 # Include your HTML and asset files
 source.include_exts = py,png,jpg,json,html,js,css
 
-# Application version (Required by Buildozer)
+# Application version
 version = 0.1
 
 # Application requirements (Kivy + Pyjnius for Android WebView hooks)
@@ -27,7 +27,10 @@ orientation = portrait
 # Fullscreen mode (0 = show status bar, 1 = immersive fullscreen)
 fullscreen = 0
 
-# Android specific settings (INTERNET is mandatory to load Tailwind/Fonts CDN)
+# Android specific settings (Added API configuration and license acceptance)
+android.api = 33
+android.min_api = 21
+android.accept_sdk_license = True
 android.permissions = INTERNET
 
 [buildozer]
