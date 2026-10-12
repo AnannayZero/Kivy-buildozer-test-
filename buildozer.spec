@@ -15,10 +15,13 @@ source.dir = .
 # Include your HTML and asset files
 source.include_exts = py,png,jpg,json,html,js,css
 
+# Application version (Required by Buildozer)
+version = 0.1
+
 # Application requirements (Kivy + Pyjnius for Android WebView hooks)
 requirements = python3,kivy,pyjnius
 
-# Supported orientations (portrait or landscape)
+# Supported orientations
 orientation = portrait
 
 # Fullscreen mode (0 = show status bar, 1 = immersive fullscreen)
